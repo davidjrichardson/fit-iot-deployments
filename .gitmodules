@@ -1,0 +1,3 @@
+[submodule "aggregation-tools"]
+	path = aggregation-tools
+	url = git@github.com:davidjrichardson/aggregation-tools.git

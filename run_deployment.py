@@ -3,33 +3,27 @@
 
 import argparse
 import json
-import logging
 import random
 import subprocess
 import time
+import logging
 from datetime import datetime, timedelta
 
 from iotlabcli.parser.common import nodes_list_from_info
 
 from iotlabaggregator import connections, LOG_FMT
+from iotlabaggregator.serial import SerialConnection
 
+logging.basicConfig(level=logging.DEBUG, format=LOG_FMT)
+logger = logging.getLogger("OutFile")
 
 class FileOutputConnection(connections.Connection):
     port = 20000
 
-    logger = logging.getLogger('SerialConnection')
-    logger.setLevel(logging.INFO)
-
     def __init__(self,  # pylint:disable=too-many-arguments
-                 hostname, aggregator, file_handle=None):
-        if file_handle is None:
-            raise ValueError("Please provide a file handle to log output to")
-
+                 hostname, aggregator):
+        logger.debug("Starting logger for host {}".format(hostname))
         super(FileOutputConnection, self).__init__(hostname, aggregator)
-
-        file_logger = logging.StreamHandler(file_handle)
-        file_logger.setFormatter(LOG_FMT)
-        self.logger.addHandler(logging.StreamHandler(file_handle))
 
         # TODO: Write a connection that logs output to a file
 
@@ -42,7 +36,6 @@ class FileOutputConnection(connections.Connection):
             if line[-1] == '\n':
                 # Handle Unicode.
                 line = line[:-1].decode('utf-8-', 'replace')
-                print "{};{}".format(self.hostname, line)
             else:
                 data = line  # last incomplete line
 
@@ -50,7 +43,7 @@ class FileOutputConnection(connections.Connection):
 
 
 class NodeAggregator(connections.Aggregator):
-    connection_class = FileOutputConnection
+    connection_class = SerialConnection
 
     def __init__(self, nodes_list, source, sink, sleep_time, packet_time, stops_at, *args, **kwargs):
         super(NodeAggregator, self).__init__(nodes_list, *args, **kwargs)
@@ -141,21 +134,20 @@ def main(argv):
     stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
     source, sink = random.sample(nodes, 2)
 
-    with open(log_file_str, 'w') as log_file:
-        # Set up logging
-        file_stream = logging.StreamHandler(log_file)
-        logger = logging.getLogger('SerialConnection')
-        logger.addHandler(file_stream)
+    # Set up logging
+    file_handler = logging.FileHandler(log_file_str)
+    file_handler.setFormatter(LOG_FMT)
+    logger.addHandler(file_handler)
 
-        #  Run `iotlab-experiment wait <id>` to wait for the experiment to start
-        # subprocess.call(["iotlab-experiment", "wait", "-i", args.id[0], "--step", "1"])
+    #  Run `iotlab-experiment wait <id>` to wait for the experiment to start
+    # subprocess.call(["iotlab-experiment", "wait", "-i", args.id[0], "--step", "1"])
 
-        # Take the experiment start system times
-        start_time = time.time()
-        logger.info("root;Experiment starting")
+    # Take the experiment start system times
+    start_time = time.time()
+    logger.debug("root;Experiment Starting")
 
-        with NodeAggregator(nodes, source, sink, 15, 60, stops_at, file_handle=log_file) as aggregator:
-            aggregator.run()
+    with NodeAggregator(nodes, source, sink, 15, 60, stops_at) as aggregator:
+        aggregator.run()
 
         # TODO: Start the serial logger
 

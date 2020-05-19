@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import logging
 import random
 import subprocess
 import time
@@ -11,7 +12,7 @@ from datetime import datetime, timedelta
 from iotlabcli.parser.common import nodes_list_from_info
 
 from iotlabaggregator import connections
-from iotlabaggregator.serial import SerialConnection, SerialAggregator
+from iotlabaggregator.serial import SerialConnection
 
 
 class NodeAggregator(connections.Aggregator):
@@ -93,7 +94,7 @@ def main(argv):
         if data['id'] == int(args.id[0]):
             metadata = data
 
-    log_file_str = metadata['id'] + '.log'
+    log_file_str = str(metadata['id']) + '.log'
 
     # Get node list and decide src, sink nodes.
     nodes_raw = json.loads(subprocess.check_output(["iotlab-experiment", "get", "-i", args.id[0], "-ri"]))
@@ -107,14 +108,19 @@ def main(argv):
     source, sink = random.sample(nodes, 2)
 
     with open(log_file_str, 'w') as log_file:
+        # Set up logging
+        file_stream = logging.StreamHandler(log_file)
+        logger = logging.getLogger('SerialConnection')
+        logger.addHandler(file_stream)
+
         #  Run `iotlab-experiment wait <id>` to wait for the experiment to start
         # subprocess.call(["iotlab-experiment", "wait", "-i", args.id[0], "--step", "1"])
 
-        # Take the experiment start system time
+        # Take the experiment start system times
         start_time = time.time()
+        logger.info("{};root;Experiment starting".format(start_time))
 
         with NodeAggregator(nodes, source, sink, 15, 60, stops_at) as aggregator:
-            aggregator = SerialAggregator(nodes)
             aggregator.run()
 
         # TODO: Start the serial logger

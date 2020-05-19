@@ -11,12 +11,25 @@ from datetime import datetime, timedelta
 
 from iotlabcli.parser.common import nodes_list_from_info
 
-from iotlabaggregator import connections
-from iotlabaggregator.serial import SerialConnection
+from iotlabaggregator import connections, serial
+
+
+class FileOutputConnection(serial.SerialConnection):
+
+    def __init__(self,  # pylint:disable=too-many-arguments
+                 hostname, aggregator, file_handle=None,
+                 print_lines=False, line_handler=None, color=False):
+        if file_handle is None:
+            raise ValueError("Please provide a file handle to log output to")
+
+        self.file_logger = logging.StreamHandler(file_handle)
+        self.logger.addHandler(self.file_logger)
+
+        super(FileOutputConnection, self).__init__(hostname, aggregator, print_lines=print_lines,
+                                                   line_handler=line_handler, color=color)
 
 
 class NodeAggregator(connections.Aggregator):
-    connection_class = SerialConnection
 
     def __init__(self, nodes_list, source, sink, sleep_time, packet_time, stops_at, *args, **kwargs):
         super(NodeAggregator, self).__init__(nodes_list, args, kwargs)
@@ -118,9 +131,9 @@ def main(argv):
 
         # Take the experiment start system times
         start_time = time.time()
-        logger.info("{};root;Experiment starting".format(start_time))
+        logger.info("root;Experiment starting")
 
-        with NodeAggregator(nodes, source, sink, 15, 60, stops_at) as aggregator:
+        with NodeAggregator(nodes, source, sink, 15, 60, stops_at, file_handle=log_file) as aggregator:
             aggregator.run()
 
         # TODO: Start the serial logger

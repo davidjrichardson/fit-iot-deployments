@@ -5,13 +5,12 @@ import argparse
 import json
 import random
 import subprocess
-import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from iotlabcli.parser.common import nodes_id_list, nodes_list_from_info
+from iotlabcli.parser.common import nodes_list_from_info
 
-from iotlabaggregator import connections, common
+from iotlabaggregator import connections
 from iotlabaggregator.serial import SerialConnection, SerialAggregator
 
 
@@ -94,16 +93,17 @@ def main(argv):
         if data['id'] == int(args.id[0]):
             metadata = data
 
-    log_file_str = metadata['name'] + '.log'
+    log_file_str = metadata['id'] + '.log'
 
     # Get node list and decide src, sink nodes.
-    nodes_raw = json.loads(subprocess.check_output(["iotlab-experiment", "get", "-i", args.id[0], "-ni"]))
+    nodes_raw = json.loads(subprocess.check_output(["iotlab-experiment", "get", "-i", args.id[0], "-ri"]))
     if not nodes_raw['items']:
         print "Experiment had no nodes assigned"
         exit(3)
 
     nodes = nodes_list_from_info(args.site[0], 'm3', nodes_raw['items'][0][args.site[0]]['m3'])
-    stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
+    # stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
+    stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
     source, sink = random.sample(nodes, 2)
 
     with open(log_file_str, 'w') as log_file:
@@ -119,7 +119,30 @@ def main(argv):
 
         # TODO: Start the serial logger
 
-    """
+
+"""
+        {
+            "date": 1589371980, <--- Start datetime (UTC)
+            "duration": 320,    <--- Duration (seconds)
+            "id": 214061,
+            "name": "",
+            "nb_resources": 10,
+            "owner": "drichard",
+            "resources": [      <--- Fully qualified domain name for the nodes
+                "m3-4.grenoble.iot-lab.info",
+                "m3-5.grenoble.iot-lab.info",
+                "m3-11.grenoble.iot-lab.info",
+                "m3-13.grenoble.iot-lab.info",
+                "m3-288.grenoble.iot-lab.info",
+                "m3-289.grenoble.iot-lab.info",
+                "m3-3.grenoble.iot-lab.info",
+                "m3-7.grenoble.iot-lab.info",
+                "m3-8.grenoble.iot-lab.info",
+                "m3-287.grenoble.iot-lab.info"
+            ],
+            "state": "Terminated"
+        }
+        
     system time      ; id  ; message
     1588584749.859566;m3-99;[INFO: TPWSN-RMHB] Sending data beacon
     1588584755.860789;m3-99;[INFO: TPWSN-RMHB] Sending neighbour announce at time 1601
@@ -127,7 +150,6 @@ def main(argv):
     1588584769.859343;m3-99;[INFO: TPWSN-RMHB] Sending data beacon
     1588584770.858889;m3-99;[INFO: TPWSN-RMHB] Sending neighbour announce at time 3101
     """
-
 
 if __name__ == "__main__":
     main(["214061", "grenoble"])

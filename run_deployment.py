@@ -28,6 +28,11 @@ class FileOutputConnection(serial.SerialConnection):
         self.file_logger = logging.StreamHandler(file_handle)
         self.logger.addHandler(self.file_logger)
 
+    def handle_data(self, data):
+        print self.logger.handlers
+
+        return super(FileOutputConnection, self).handle_data(data)
+
 
 class NodeAggregator(connections.Aggregator):
     connection_class = FileOutputConnection

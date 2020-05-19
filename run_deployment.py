@@ -7,7 +7,7 @@ import logging
 import random
 import subprocess
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from iotlabcli.parser.common import nodes_list_from_info
 
@@ -30,9 +30,10 @@ class FileOutputConnection(serial.SerialConnection):
 
 
 class NodeAggregator(connections.Aggregator):
+    connection_class = FileOutputConnection
 
     def __init__(self, nodes_list, source, sink, sleep_time, packet_time, stops_at, *args, **kwargs):
-        super(NodeAggregator, self).__init__(nodes_list, args, kwargs)
+        super(NodeAggregator, self).__init__(nodes_list, *args, **kwargs)
 
         #  TODO: Get the time limit for cutting experiments short from the experiment metadata
         #  The source and sink nodes
@@ -116,8 +117,8 @@ def main(argv):
         exit(3)
 
     nodes = nodes_list_from_info(args.site[0], 'm3', nodes_raw['items'][0][args.site[0]]['m3'])
-    # stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
-    stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
+    stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
+    # stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
     source, sink = random.sample(nodes, 2)
 
     with open(log_file_str, 'w') as log_file:

@@ -11,27 +11,42 @@ from datetime import datetime, timedelta
 
 from iotlabcli.parser.common import nodes_list_from_info
 
-from iotlabaggregator import connections, serial
+from iotlabaggregator import connections, LOG_FMT
 
 
-class FileOutputConnection(serial.SerialConnection):
+class FileOutputConnection(connections.Connection):
+    port = 20000
+
+    logger = logging.getLogger('SerialConnection')
+    logger.setLevel(logging.INFO)
 
     def __init__(self,  # pylint:disable=too-many-arguments
-                 hostname, aggregator, file_handle=None,
-                 print_lines=False, line_handler=None, color=False):
+                 hostname, aggregator, file_handle=None):
         if file_handle is None:
             raise ValueError("Please provide a file handle to log output to")
 
-        super(FileOutputConnection, self).__init__(hostname, aggregator, print_lines=print_lines,
-                                                   line_handler=line_handler, color=color)
+        super(FileOutputConnection, self).__init__(hostname, aggregator)
 
-        self.file_logger = logging.StreamHandler(file_handle)
-        self.logger.addHandler(self.file_logger)
+        file_logger = logging.StreamHandler(file_handle)
+        file_logger.setFormatter(LOG_FMT)
+        self.logger.addHandler(logging.StreamHandler(file_handle))
+
+        # TODO: Write a connection that logs output to a file
 
     def handle_data(self, data):
-        print self.logger.handlers
+        """ Print the data received line by line """
 
-        return super(FileOutputConnection, self).handle_data(data)
+        lines = data.splitlines(True)
+        data = ''
+        for line in lines:
+            if line[-1] == '\n':
+                # Handle Unicode.
+                line = line[:-1].decode('utf-8-', 'replace')
+                print "{};{}".format(self.hostname, line)
+            else:
+                data = line  # last incomplete line
+
+        return data
 
 
 class NodeAggregator(connections.Aggregator):

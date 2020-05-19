@@ -7,7 +7,7 @@ import logging
 import random
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from iotlabcli.parser.common import nodes_list_from_info
 
@@ -22,11 +22,11 @@ class FileOutputConnection(serial.SerialConnection):
         if file_handle is None:
             raise ValueError("Please provide a file handle to log output to")
 
-        self.file_logger = logging.StreamHandler(file_handle)
-        self.logger.addHandler(self.file_logger)
-
         super(FileOutputConnection, self).__init__(hostname, aggregator, print_lines=print_lines,
                                                    line_handler=line_handler, color=color)
+
+        self.file_logger = logging.StreamHandler(file_handle)
+        self.logger.addHandler(self.file_logger)
 
 
 class NodeAggregator(connections.Aggregator):
@@ -117,8 +117,8 @@ def main(argv):
         exit(3)
 
     nodes = nodes_list_from_info(args.site[0], 'm3', nodes_raw['items'][0][args.site[0]]['m3'])
-    stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
-    # stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
+    # stops_at = datetime.strptime(metadata['stop_date'], '%Y-%m-%dT%H:%M:%SZ')
+    stops_at = datetime.utcfromtimestamp(metadata["date"]) + timedelta(seconds=metadata["duration"])
     source, sink = random.sample(nodes, 2)
 
     with open(log_file_str, 'w') as log_file:

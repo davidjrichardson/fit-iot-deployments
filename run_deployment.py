@@ -6,6 +6,7 @@ import json
 import logging
 import random
 import subprocess
+import sys
 import time
 from datetime import datetime, timedelta
 
@@ -43,8 +44,12 @@ class FileOutputConnection(connections.Connection):
         return data
 
 
+def write_to_logger(host, line):
+    logger.debug("{};{}".format(host, line))
+
+
 class NodeAggregator(connections.Aggregator):
-    connection_class = FileOutputConnection
+    connection_class = SerialConnection
 
     def __init__(self, nodes_list, source, sink, sleep_time, packet_time, stops_at, *args, **kwargs):
         super(NodeAggregator, self).__init__(nodes_list, *args, **kwargs)
@@ -147,7 +152,8 @@ def main(argv):
     start_time = time.time()
     logger.debug("root;Experiment Starting")
 
-    with NodeAggregator(nodes, source, sink, 15, 60, stops_at) as aggregator:
+    with NodeAggregator(nodes, source, sink, 15, 60, stops_at, print_lines=True,
+                        line_handler=write_to_logger) as aggregator:
         aggregator.run()
 
         # TODO: Start the serial logger

@@ -15,7 +15,7 @@ from iotlabcli.parser.common import nodes_list_from_info
 from iotlabaggregator import connections, LOG_FMT
 from iotlabaggregator.serial import SerialConnection
 
-logger = logging.getLogger("OutFile")
+logger = logging.getLogger("SerialConnection")
 
 
 class FileOutputConnection(connections.Connection):
@@ -42,10 +42,6 @@ class FileOutputConnection(connections.Connection):
                 data = line  # last incomplete line
 
         return data
-
-
-def write_to_logger(host, line):
-    logger.debug("{};{}".format(host, line))
 
 
 class NodeAggregator(connections.Aggregator):
@@ -92,14 +88,14 @@ class NodeAggregator(connections.Aggregator):
                 self.failed.append((recovering_at, failed_node))
                 self.failables.remove(failed_node)
 
-                logger.debug("Failing node {}".format(failed_node))
+                logger.info("Failing node {}".format(failed_node))
 
             # Maintain the list of failed nodes
             recovered = []
             for up_time, node in self.failed:
                 if time.time() >= up_time:
                     recovered.append((up_time, node))
-                    logger.debug("{} coming back online".format(node))
+                    logger.info("{} coming back online".format(node))
 
             self.failed = [x for x in self.failed if x not in recovered]
             self.failables.extend(map(lambda x: x[1], recovered))
@@ -107,7 +103,7 @@ class NodeAggregator(connections.Aggregator):
             # Loop this every second
             time.sleep(1.0 - (time.time() % 1.0))
 
-        logger.debug("root;Experiment finished")
+        logger.info("root;Experiment finished")
 
 
 def main(argv):
@@ -150,10 +146,9 @@ def main(argv):
 
     # Take the experiment start system times
     start_time = time.time()
-    logger.debug("root;Experiment Starting")
+    logger.info("root;Experiment Starting")
 
-    with NodeAggregator(nodes, source, sink, 15, 60, stops_at, print_lines=True,
-                        line_handler=write_to_logger) as aggregator:
+    with NodeAggregator(nodes, source, sink, 15, 60, stops_at, print_lines=True) as aggregator:
         aggregator.run()
 
         # TODO: Start the serial logger

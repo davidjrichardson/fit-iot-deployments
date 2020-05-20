@@ -44,7 +44,7 @@ class FileOutputConnection(connections.Connection):
 
 
 class NodeAggregator(connections.Aggregator):
-    connection_class = SerialConnection
+    connection_class = FileOutputConnection
 
     def __init__(self, nodes_list, source, sink, sleep_time, packet_time, stops_at, *args, **kwargs):
         super(NodeAggregator, self).__init__(nodes_list, *args, **kwargs)
@@ -75,8 +75,8 @@ class NodeAggregator(connections.Aggregator):
                 exp_start_time = time.time()
 
             # Exit the experiment loop if the experiment needs to terminate
-            # if datetime.now() >= self.stops_at:
-            # break
+            if datetime.now() >= self.stops_at:
+                break
 
             #  Fail nodes with a 1/5 chance each second
             if (random.randint(1, 5) % 5) == 0 and self.failables:
@@ -87,14 +87,14 @@ class NodeAggregator(connections.Aggregator):
                 self.failed.append((recovering_at, failed_node))
                 self.failables.remove(failed_node)
 
-                print "Failing node {}".format(failed_node)
+                logger.debug("Failing node {}".format(failed_node))
 
             # Maintain the list of failed nodes
             recovered = []
             for up_time, node in self.failed:
                 if time.time() >= up_time:
                     recovered.append((up_time, node))
-                    print "{} coming back online".format(node)
+                    logger.debug("{} coming back online".format(node))
 
             self.failed = [x for x in self.failed if x not in recovered]
             self.failables.extend(map(lambda x: x[1], recovered))
@@ -102,7 +102,7 @@ class NodeAggregator(connections.Aggregator):
             # Loop this every second
             time.sleep(1.0 - (time.time() % 1.0))
 
-        print "Experiment finished"
+        logger.debug("root;Experiment finished")
 
 
 def main(argv):
@@ -141,7 +141,7 @@ def main(argv):
     logger.addHandler(file_handler)
 
     #  Run `iotlab-experiment wait <id>` to wait for the experiment to start
-    # subprocess.call(["iotlab-experiment", "wait", "-i", args.id[0], "--step", "1"])
+    subprocess.call(["iotlab-experiment", "wait", "-i", args.id[0], "--step", "1"])
 
     # Take the experiment start system times
     start_time = time.time()
@@ -185,5 +185,5 @@ def main(argv):
     """
 
 if __name__ == "__main__":
-    main(["214061", "grenoble"])
-    # main(sys.argv[1:])
+    # main(["214061", "grenoble"])
+    main(sys.argv[1:])

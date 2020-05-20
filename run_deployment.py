@@ -72,7 +72,7 @@ class NodeAggregator(connections.Aggregator):
         while True:
             # Send a new message if we're past the duration of the old one
             if (time.time() - exp_start_time) >= self.packet_time:
-                # self.send_nodes([self.source], 'start\n')
+                self.send_nodes([self.source], 'start\n')
                 exp_start_time = time.time()
 
             # Exit the experiment loop if the experiment needs to terminate
@@ -83,7 +83,7 @@ class NodeAggregator(connections.Aggregator):
             if (random.randint(1, 5) % 5) == 0 and self.failables:
                 failed_node = random.choice(self.failables)
                 recovering_at = time.time() + self.sleep_time
-                # self.send_nodes([failed_node], "sleep {}\n".format(self.sleep_time))
+                self.send_nodes([failed_node], "sleep {}\n".format(self.sleep_time))
 
                 self.failed.append((recovering_at, failed_node))
                 self.failables.remove(failed_node)

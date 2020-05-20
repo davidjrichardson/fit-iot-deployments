@@ -80,7 +80,7 @@ class NodeAggregator(connections.Aggregator):
                 exp_start_time = time.time()
 
             # Exit the experiment loop if the experiment needs to terminate
-            if datetime.now() >= self.stops_at:
+            if datetime.utcnow() >= self.stops_at:
                 break
 
             #  Fail nodes with a 1/5 chance each second

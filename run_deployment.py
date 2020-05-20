@@ -3,10 +3,10 @@
 
 import argparse
 import json
+import logging
 import random
 import subprocess
 import time
-import logging
 from datetime import datetime, timedelta
 
 from iotlabcli.parser.common import nodes_list_from_info
@@ -14,8 +14,8 @@ from iotlabcli.parser.common import nodes_list_from_info
 from iotlabaggregator import connections, LOG_FMT
 from iotlabaggregator.serial import SerialConnection
 
-logging.basicConfig(level=logging.DEBUG, format=LOG_FMT)
 logger = logging.getLogger("OutFile")
+
 
 class FileOutputConnection(connections.Connection):
     port = 20000
@@ -36,6 +36,7 @@ class FileOutputConnection(connections.Connection):
             if line[-1] == '\n':
                 # Handle Unicode.
                 line = line[:-1].decode('utf-8-', 'replace')
+                logger.debug("{};{}".format(self.hostname, line))
             else:
                 data = line  # last incomplete line
 
